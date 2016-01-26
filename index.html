@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>LPC13xx boot analysis by domenpk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">LPC13xx boot analysis</h1>
+      <h2 class="project-tagline">LPC13xx Bootloader Reverse Engineering</h2>
+      <a href="https://github.com/domenpk/lpc13xx_boot_analysis" class="btn">View on GitHub</a>
+      <a href="https://github.com/domenpk/lpc13xx_boot_analysis/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/domenpk/lpc13xx_boot_analysis/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="lpc13xx-bootloader-reverse-engineering" class="anchor" href="#lpc13xx-bootloader-reverse-engineering" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>LPC13xx Bootloader Reverse Engineering</h1>
+
+<p>This article describes my research into internals of bootloader on NXP's lpc1313 and lpc1343 chips.</p>
+
+<h2>
+<a id="what-is-it" class="anchor" href="#what-is-it" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What is it?</h2>
+
+<p>Bootloader on lpc13xx chips is located in internal ROM at <code>0x1fff0000</code> and is <code>0x4000</code> (16kB) in size. It contains code for:</p>
+
+<ul>
+<li>Checksum validation, CRP handling and handover to user code.</li>
+<li>UART bootloader</li>
+<li>USB bootloader</li>
+<li>IAP routines</li>
+</ul>
+
+<h2>
+<a id="existing-work" class="anchor" href="#existing-work" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Existing work</h2>
+
+<p>None that I'm aware of. Googling for undocumented peripheral registers,
+values, addresses returns no results or something completely unrelated.</p>
+
+<h2>
+<a id="my-work" class="anchor" href="#my-work" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>My work</h2>
+
+<p>I've used simple utilities to dump the FLASH contents to serial, and then transform to binaries objdump could understand.</p>
+
+<p>The attached disassembly is from lpc1313, although it also contains USB code, so I think it's safe to assume the bootloader is shared amongst different chips.</p>
+
+<p>Bootloader is using quite a few undocumented peripheral registers and
+currently what stands out the most for me is the secret FLASH described below.</p>
+
+<p>The CRP checks look simple enough and don't seem to contain logic bugs. I do
+wonder how SWD is handled (is it disabled soon after boot, which would be bad
+from security point of view, or does it have to be enabled?)</p>
+
+<h2>
+<a id="secret-flash-area" class="anchor" href="#secret-flash-area" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Secret FLASH area</h2>
+
+<p>When disassembling I've noticed some special accesses are taking place.</p>
+
+<p>It appears <code>0x0000</code> area can be remapped to some secret flash, if you write
+enable bit <code>0x40</code> at location <code>0x4003c000</code> (undocumented address, although close
+to other FLASH settings):</p>
+
+<pre><code>unsigned *f = (unsigned*)0x4003c000;
+*f |= 0x40;
+</code></pre>
+
+<p>Note that since this code will basically make user FLASH unreachable, it
+should be executed from RAM.</p>
+
+<p>This secret FLASH area is 2k long, with most entries being <code>0xffffffff</code>. It
+contains some settings that are used by the bootloader and has a description
+of FLASH sectors. Accessing beyond 2k of this region just starts returning the same contents over and over again.</p>
+
+<h2>
+<a id="todo" class="anchor" href="#todo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul>
+<li>What are differences between lpc131x and lpc134x chips? Is it possible USB is just disabled? Compare bootloader dumps and secret flash dumps.</li>
+<li>Can secret FLASH be changed?</li>
+<li>Where is SWD enabled/disabled?</li>
+<li>Create short code (binary even?) to easily dump contents of different chips
+and start building a database of bootloaders and special FLASH areas.</li>
+<li>What's ISP's "T" command?</li>
+</ul>
+
+<h2>
+<a id="extra-resources" class="anchor" href="#extra-resources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Extra resources:</h2>
+
+<ul>
+<li><a href="boot_disassembly.txt">objdump with comments</a></li>
+<li><a href="secret_flash_lpc1313.txt">secret FLASH dump with comments</a></li>
+</ul>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/domenpk/lpc13xx_boot_analysis">LPC13xx boot analysis</a> is maintained by <a href="https://github.com/domenpk">domenpk</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
