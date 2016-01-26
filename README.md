@@ -60,5 +60,5 @@ TODO
 
 Extra resources:
 ----------------
- - [objdump with comments](boot_disassembly.txt)
- - [secret FLASH dump with comments](secret_flash_lpc1313.txt)
+ - [objdump with comments](https://github.com/domenpk/lpc13xx_boot_analysis/blob/master/boot_disassembly.txt)
+ - [secret FLASH dump with comments](https://github.com/domenpk/lpc13xx_boot_analysis/blob/master/secret_flash_lpc1313.txt)
