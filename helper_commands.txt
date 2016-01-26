@@ -1,0 +1,13 @@
+# unhexify_command
+cat lpc1313_secret_flash.txt | xxd -r -p | hexdump -C
+
+# bin_to_x32_hexdump.txt
+cat lpc1313_secret_flash_real.bin | hexdump -v  -e '/4  "%_ax: "' -e '/4 " %08x\n"' | grep -v ' ffffffff$'
+
+# bootloader_dump.commands
+xxd -s -0x1fff0000 -r < bootloader_dump.txt > bootloader_dump.bin
+#arm-none-eabi-objcopy --rename-section .data=.symbol_table,alloc,load,readonly,data,contents -B arm -I binary -O elf32-littlearm bootloader_dump.bin bootloader_dump.elf
+arm-none-eabi-objcopy --rename-section .data=.text,alloc,load,readonly,data,contents -B arm -I binary -O elf32-littlearm --change-section-address .data=0x1fff0000 bootloader_dump.bin bootloader_dump.elf
+arm-none-eabi-objdump -xD bootloader_dump.elf -Mforce-thumb| less
+cat bootloader_dump.bin  | od -t x4 -w4 -v -Ax > bootloader_dump.x32.txt
+
